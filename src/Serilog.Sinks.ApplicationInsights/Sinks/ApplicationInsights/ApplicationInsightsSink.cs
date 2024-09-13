@@ -18,6 +18,7 @@ using System.Runtime.ExceptionServices;
 using System.Threading;
 using Microsoft.ApplicationInsights;
 using Microsoft.ApplicationInsights.Channel;
+using Microsoft.ApplicationInsights.Extensibility;
 using Serilog.Core;
 using Serilog.Events;
 using Serilog.Sinks.ApplicationInsights.TelemetryConverters;
@@ -33,6 +34,9 @@ public class ApplicationInsightsSink : ILogEventSink, IDisposable
     readonly IFormatProvider _formatProvider;
 
     readonly ITelemetryConverter _telemetryConverter;
+
+    readonly TelemetryConfiguration _telemetryConfiguration;
+
     long _isDisposed;
     long _isDisposing;
 
@@ -45,16 +49,19 @@ public class ApplicationInsightsSink : ILogEventSink, IDisposable
     /// <param name="telemetryClient">Required Application Insights <paramref name="telemetryClient" />.</param>
     /// <param name="telemetryConverter">The <see cref="LogEvent" /> to <see cref="ITelemetry" /> converter.</param>
     /// <param name="formatProvider">Supplies culture-specific formatting information, or null for default provider.</param>
+    /// <param name="telemetryConfiguration">The configuration used to create the client. Only needed when disposal is required.</param>
     /// <exception cref="ArgumentNullException"><paramref name="telemetryClient" /> cannot be null</exception>
     public ApplicationInsightsSink(
         TelemetryClient telemetryClient,
         ITelemetryConverter telemetryConverter,
-        IFormatProvider formatProvider = null)
+        IFormatProvider formatProvider = null,
+        TelemetryConfiguration telemetryConfiguration = null)
     {
         _telemetryClient = telemetryClient ?? throw new ArgumentNullException(nameof(telemetryClient));
         _telemetryConverter = telemetryConverter ?? throw new ArgumentNullException(nameof(telemetryConverter));
 
         _formatProvider = formatProvider;
+        _telemetryConfiguration = telemetryConfiguration;
     }
 
     /// <summary>
@@ -179,6 +186,7 @@ public class ApplicationInsightsSink : ILogEventSink, IDisposable
                 try
                 {
                     _telemetryClient?.Flush();
+                    _telemetryConfiguration?.Dispose();
                 }
                 finally
                 {
